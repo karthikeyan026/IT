@@ -31,14 +31,16 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             if (result.success && result.student) {
                 const student = result.student;
                 
-                // Store student data (no token needed with Supabase)
+                // Store student data and token (needed by App.tsx auth check)
                 localStorage.setItem('student', JSON.stringify(student));
+                localStorage.setItem('token', 'supabase-auth');  // Dummy token for Supabase auth
                 const isAdminUser = checkIsAdmin(student);
+                localStorage.setItem('isAdmin', isAdminUser.toString());
                 
                 // Update online status
                 await updateStudentOnlineStatus(student.id, true);
                 
-                onLoginSuccess(student, '', isAdminUser);
+                onLoginSuccess(student, 'supabase-auth', isAdminUser);
                 
                 // Redirect to appropriate dashboard
                 setTimeout(() => {
