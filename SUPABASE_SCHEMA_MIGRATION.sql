@@ -126,17 +126,17 @@ CREATE INDEX idx_round_results_round_name ON public.round_results(round_name);
 -- Enable Row Level Security (RLS) for Students
 ALTER TABLE public.students ENABLE ROW LEVEL SECURITY;
 
--- RLS Policy: Students can only read their own data
-CREATE POLICY "Students can read own data" ON public.students
-FOR SELECT USING (id = auth.uid() OR role = 'ADMIN');
+-- RLS Policy: Allow anyone to read students data (needed for custom auth without Supabase Auth)
+CREATE POLICY "Anyone can read students" ON public.students
+FOR SELECT USING (true);
 
 -- RLS Policy: Allow inserts for new student logins (unauthenticated, for initial access)
 CREATE POLICY "Enable inserts for student login" ON public.students
 FOR INSERT WITH CHECK (true);
 
--- RLS Policy: Students can update their own scores
-CREATE POLICY "Students can update own scores" ON public.students
-FOR UPDATE USING (id = auth.uid() OR role = 'ADMIN');
+-- RLS Policy: Allow anyone to update students (needed for login time, scores, etc.)
+CREATE POLICY "Anyone can update students" ON public.students
+FOR UPDATE USING (true);
 
 -- Enable subscriptions on tables
 GRANT EXECUTE ON FUNCTION pg_stat_statements_reset to anon;
