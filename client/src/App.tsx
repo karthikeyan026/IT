@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { LoginPage } from './components/LoginPage';
 import { WaitingLobby } from './components/WaitingLobby';
-import SimpleAdminDashboard from './pages/SimpleAdminDashboard';
+import ComprehensiveAdminDashboard from './pages/ComprehensiveAdminDashboard';
 import DragReorder from './components/DragReorder';
 import { AptitudeRound } from './components/AptitudeRound';
 import { RealTimeLeaderboard } from './components/RealTimeLeaderboard';
@@ -220,12 +220,12 @@ function App() {
                 </div>
             );
         }
-        return <SimpleAdminDashboard />;
+        return <ComprehensiveAdminDashboard />;
     }
 
     // Student route handling
     if (!isAuthenticated) return <LoginPage onLoginSuccess={handleLoginSuccess} />;
-    if (isAdmin) return <SimpleAdminDashboard />;
+    if (isAdmin) return <ComprehensiveAdminDashboard />;
     if (currentRound === 'LOBBY') return <WaitingLobby student={student} onRoundStart={(r) => setCurrentRound(r as RoundName)} />;
 
     // Show AptitudeRound component for aptitude round

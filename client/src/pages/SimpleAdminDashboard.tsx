@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { motion } from 'framer-motion';
-import { Users, Trophy, Activity, RefreshCw, LogOut } from 'lucide-react';
+import { 
+    Users, Trophy, Activity, RefreshCw, LogOut, Play, Square, 
+    AlertTriangle, Eye, Award, Crown, Medal
+} from 'lucide-react';
 
 interface Student {
     id: string;
@@ -14,20 +17,43 @@ interface Student {
     overall_score: number;
 }
 
+interface Violation {
+    id: string;
+    student_id: string;
+    violation_type: string;
+    timestamp: string;
+    student_name?: string;
+    student_reg_no?: string;
+}
+
+interface PlagiarismLog {
+    id: string;
+    student1_id: string;
+    student2_id: string;
+    similarity_score: number;
+    created_at: string;
+}
+
 const SimpleAdminDashboard: React.FC = () => {
     const [students, setStudents] = useState<Student[]>([]);
+    const [violations, setViolations] = useState<Violation[]>([]);
+    const [plagiarismLogs, setPlagiarismLogs] = useState<PlagiarismLog[]>([]);
+    const [currentRound, setCurrentRound] = useState<string>('LOBBY');
     const [stats, setStats] = useState({
         totalStudents: 0,
         onlineStudents: 0,
-        totalAdmins: 0
+        totalAdmins: 0,
+        totalViolations: 0,
+        plagiarismCases: 0
     });
+    const [activeTab, setActiveTab] = useState<'DASHBOARD' | 'VIOLATIONS' | 'PLAGIARISM' | 'TOP10' | 'WINNER'>('DASHBOARD');
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        fetchStudents();
+        fetchAllData();
         
         // Subscribe to real-time changes
-        const subscription = supabase
+        const studentsSubscription = supabase
             .channel('students-changes')
             .on('postgres_changes', 
                 { event: '*', schema: 'public', table: 'students' },
@@ -37,10 +63,63 @@ const SimpleAdminDashboard: React.FC = () => {
             )
             .subscribe();
 
+        const violationsSubscription = supabase
+            .channel('violations-changes')
+            .on('postgres_changes',
+                { event: 'INSERT', schema: 'public', table: 'violations' },
+                () => {
+                    fetchViolations();
+                }
+            )
+            .subscribe();
+
+        const plagiarismSubscription = supabase
+            .channel('plagiarism-changes')
+            .on('postgres_changes',
+                { event: 'INSERT', schema: 'public', table: 'plagiarism_logs' },
+                () => {
+                    fetchPlagiarism();
+                }
+            )
+            .subscribe();
+
+        // Fetch event status
+        fetchEventStatus();
+        const interval = setInterval(fetchEventStatus, 3000);
+
         return () => {
-            subscription.unsubscribe();
+            studentsSubscription.unsubscribe();
+            violationsSubscription.unsubscribe();
+            plagiarismSubscription.unsubscribe();
+            clearInterval(interval);
         };
     }, []);
+
+    const fetchAllData = async () => {
+        await Promise.all([
+            fetchStudents(),
+            fetchViolations(),
+            fetchPlagiarism(),
+            fetchEventStatus()
+        ]);
+        setLoading(false);
+    };
+
+    const fetchEventStatus = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('event_status')
+                .select('current_round')
+                .eq('id', 1)
+                .single();
+
+            if (data && !error) {
+                setCurrentRound(data.current_round);
+            }
+        } catch (error) {
+            console.error('Error fetching event status:', error);
+        }
+    };
 
     const fetchStudents = async () => {
         try {
@@ -48,6 +127,112 @@ const SimpleAdminDashboard: React.FC = () => {
                 .from('students')
                 .select('*')
                 .order('overall_score', { ascending: false });
+
+            if (error) throw error;
+
+            if (data) {
+                setStudents(data);
+                const studentList = data.filter(s => s.role === 'STUDENT');
+                const adminList = data.filter(s => s.role === 'ADMIN');
+                const onlineList = data.filter(s => s.is_online);
+
+                setStats(prev => ({
+                    ...prev,
+                    totalStudents: studentList.length,
+                    onlineStudents: onlineList.length,
+                    totalAdmins: adminList.length
+                }));
+            }
+        } catch (error) {
+            console.error('Error fetching students:', error);
+        }
+    };
+
+    const fetchViolations = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('violations')
+                .select(`
+                    *,
+                    students:student_id (reg_no, name)
+                `)
+                .order('timestamp', { ascending: false })
+                .limit(50);
+
+            if (!error && data) {
+                const formattedViolations = data.map((v: any) => ({
+                    ...v,
+                    student_name: v.students?.name || 'Unknown',
+                    student_reg_no: v.students?.reg_no || 'N/A'
+                }));
+                setViolations(formattedViolations);
+                setStats(prev => ({
+                    ...prev,
+                    totalViolations: data.length
+                }));
+            }
+        } catch (error) {
+            console.error('Error fetching violations:', error);
+        }
+    };
+
+    const fetchPlagiarism = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('plagiarism_logs')
+                .select('*')
+                .order('created_at', { ascending: false })
+                .limit(50);
+
+            if (!error && data) {
+                setPlagiarismLogs(data);
+                setStats(prev => ({
+                    ...prev,
+                    plagiarismCases: data.length
+                }));
+            }
+        } catch (error) {
+            console.error('Error fetching plagiarism logs:', error);
+        }
+    };
+
+    const startRound = async (round: 'TECHNICAL' | 'APTITUDE') => {
+        try {
+            const { error } = await supabase
+                .from('event_status')
+                .update({ current_round: round, updated_at: new Date().toISOString() })
+                .eq('id', 1);
+
+            if (!error) {
+                setCurrentRound(round);
+                alert(`${round} round started!`);
+            } else {
+                alert('Failed to start round');
+            }
+        } catch (error) {
+            console.error('Error starting round:', error);
+            alert('Error starting round');
+        }
+    };
+
+    const stopRound = async () => {
+        try {
+            const { error } = await supabase
+                .from('event_status')
+                .update({ current_round: 'LOBBY', updated_at: new Date().toISOString() })
+                .eq('id', 1);
+
+            if (!error) {
+                setCurrentRound('LOBBY');
+                alert('Round stopped!');
+            } else {
+                alert('Failed to stop round');
+            }
+        } catch (error) {
+            console.error('Error stopping round:', error);
+            alert('Error stopping round');
+        }
+    };
 
             if (error) throw error;
 
