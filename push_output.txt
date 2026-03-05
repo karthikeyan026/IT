@@ -1,0 +1,5 @@
+Pushing to https://github.com/karthikeyan026/IT.git
+To https://github.com/karthikeyan026/IT.git
+ = [up to date]      main -> main
+updating local tracking ref 'refs/remotes/origin/main'
+Everything up-to-date

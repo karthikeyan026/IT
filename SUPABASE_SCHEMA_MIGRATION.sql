@@ -5,7 +5,7 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Students Table
-CREATE TABLE public.students (
+CREATE TABLE IF NOT EXISTS public.students (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   reg_no VARCHAR(20) UNIQUE NOT NULL,
   name VARCHAR(100) NOT NULL,
@@ -20,7 +20,7 @@ CREATE TABLE public.students (
 );
 
 -- Event Status (Control rounds from Admin Dashboard)
-CREATE TABLE public.event_status (
+CREATE TABLE IF NOT EXISTS public.event_status (
   id INT PRIMARY KEY DEFAULT 1,
   current_round VARCHAR(50) DEFAULT 'LOBBY' CHECK (current_round IN ('LOBBY', 'TECHNICAL', 'APTITUDE', 'ENDED')),
   is_locked BOOLEAN DEFAULT FALSE,
@@ -31,7 +31,7 @@ CREATE TABLE public.event_status (
 INSERT INTO public.event_status (id, current_round, is_locked) VALUES (1, 'LOBBY', FALSE) ON CONFLICT (id) DO NOTHING;
 
 -- Questions Table
-CREATE TABLE public.questions (
+CREATE TABLE IF NOT EXISTS public.questions (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   round_name VARCHAR(50) NOT NULL CHECK (round_name IN ('TECHNICAL', 'APTITUDE')),
   type VARCHAR(50) NOT NULL,
@@ -47,7 +47,7 @@ CREATE TABLE public.questions (
 );
 
 -- Submissions Table
-CREATE TABLE public.submissions (
+CREATE TABLE IF NOT EXISTS public.submissions (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   student_id UUID NOT NULL REFERENCES public.students(id) ON DELETE CASCADE,
   question_id UUID NOT NULL REFERENCES public.questions(id) ON DELETE CASCADE,
@@ -60,7 +60,7 @@ CREATE TABLE public.submissions (
 );
 
 -- Violations Table (Tab Switch Detection)
-CREATE TABLE public.violations (
+CREATE TABLE IF NOT EXISTS public.violations (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   student_id UUID NOT NULL REFERENCES public.students(id) ON DELETE CASCADE,
   violation_type VARCHAR(50) NOT NULL CHECK (violation_type IN ('TAB_SWITCH', 'BLUR', 'MINIMIZE')),
@@ -68,7 +68,7 @@ CREATE TABLE public.violations (
 );
 
 -- Plagiarism Logs Table
-CREATE TABLE public.plagiarism_logs (
+CREATE TABLE IF NOT EXISTS public.plagiarism_logs (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   student1_id UUID NOT NULL REFERENCES public.students(id) ON DELETE CASCADE,
   student2_id UUID NOT NULL REFERENCES public.students(id) ON DELETE CASCADE,
@@ -79,7 +79,7 @@ CREATE TABLE public.plagiarism_logs (
 );
 
 -- Round Results Table (Track round qualifiers)
-CREATE TABLE public.round_results (
+CREATE TABLE IF NOT EXISTS public.round_results (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   student_id UUID NOT NULL REFERENCES public.students(id) ON DELETE CASCADE,
   round_name VARCHAR(50) NOT NULL CHECK (round_name IN ('TECHNICAL', 'APTITUDE')),
@@ -90,7 +90,7 @@ CREATE TABLE public.round_results (
 );
 
 -- Student Activity (For Admin Dashboard Live Tracking)
-CREATE TABLE public.student_activity (
+CREATE TABLE IF NOT EXISTS public.student_activity (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   student_id UUID NOT NULL REFERENCES public.students(id) ON DELETE CASCADE,
   current_question_id UUID REFERENCES public.questions(id) ON DELETE SET NULL,
@@ -100,7 +100,7 @@ CREATE TABLE public.student_activity (
 );
 
 -- Leaderboard View (Materialized view for performance)
-CREATE VIEW public.leaderboard AS
+CREATE OR REPLACE VIEW public.leaderboard AS
 SELECT
   s.id,
   s.reg_no,
@@ -113,15 +113,15 @@ FROM public.students s
 ORDER BY s.overall_score DESC;
 
 -- Create Indexes for Performance
-CREATE INDEX idx_submissions_student_id ON public.submissions(student_id);
-CREATE INDEX idx_submissions_question_id ON public.submissions(question_id);
-CREATE INDEX idx_submissions_created_at ON public.submissions(created_at);
-CREATE INDEX idx_violations_student_id ON public.violations(student_id);
-CREATE INDEX idx_violations_timestamp ON public.violations(timestamp);
-CREATE INDEX idx_questions_round_name ON public.questions(round_name);
-CREATE INDEX idx_plagiarism_logs_created_at ON public.plagiarism_logs(created_at);
-CREATE INDEX idx_round_results_student_id ON public.round_results(student_id);
-CREATE INDEX idx_round_results_round_name ON public.round_results(round_name);
+CREATE INDEX IF NOT EXISTS idx_submissions_student_id ON public.submissions(student_id);
+CREATE INDEX IF NOT EXISTS idx_submissions_question_id ON public.submissions(question_id);
+CREATE INDEX IF NOT EXISTS idx_submissions_created_at ON public.submissions(created_at);
+CREATE INDEX IF NOT EXISTS idx_violations_student_id ON public.violations(student_id);
+CREATE INDEX IF NOT EXISTS idx_violations_timestamp ON public.violations(timestamp);
+CREATE INDEX IF NOT EXISTS idx_questions_round_name ON public.questions(round_name);
+CREATE INDEX IF NOT EXISTS idx_plagiarism_logs_created_at ON public.plagiarism_logs(created_at);
+CREATE INDEX IF NOT EXISTS idx_round_results_student_id ON public.round_results(student_id);
+CREATE INDEX IF NOT EXISTS idx_round_results_round_name ON public.round_results(round_name);
 
 -- Enable Row Level Security (RLS) for Students
 ALTER TABLE public.students ENABLE ROW LEVEL SECURITY;
