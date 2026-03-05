@@ -13,7 +13,7 @@
 export const setupAptitudeRound = async () => {
   console.log('🚀 Setting up Aptitude Round...');
   
-  const { seedAptitudeRound } = await import('./services/seedAptitudeQuestions');
+  const { seedAptitudeRound } = await import('../services/seedAptitudeQuestions');
   const result = await seedAptitudeRound();
   
   if (result.success) {
@@ -32,7 +32,7 @@ export const setupAptitudeRound = async () => {
 export const verifySetup = async () => {
   console.log('🔍 Verifying Aptitude Round setup...');
   
-  const { getRoundQuestions } = await import('./services/supabaseQuestions');
+  const { getRoundQuestions } = await import('../services/supabaseQuestions');
   const questions = await getRoundQuestions('APTITUDE');
   
   console.log(`✅ Found ${questions.length} questions`);
@@ -59,7 +59,7 @@ export const verifySetup = async () => {
 export const simulateStudentTest = async (studentId: string, studentName: string) => {
   console.log(`🎓 Simulating test for ${studentName}...`);
   
-  const { getRoundQuestions, submitAnswer } = await import('./services/supabaseQuestions');
+  const { getRoundQuestions, submitAnswer } = await import('../services/supabaseQuestions');
   const questions = await getRoundQuestions('APTITUDE');
   
   if (questions.length === 0) {
@@ -102,7 +102,7 @@ export const simulateStudentTest = async (studentId: string, studentName: string
 export const checkLeaderboard = async () => {
   console.log('🏆 Fetching leaderboard...');
   
-  const { getLeaderboard } = await import('./services/supabaseQuestions');
+  const { getLeaderboard } = await import('../services/supabaseQuestions');
   const leaderboard = await getLeaderboard();
   
   console.log(`Found ${leaderboard.length} students:\n`);
@@ -125,7 +125,7 @@ export const diagnoseDatabase = async () => {
   console.log('🔧 Running diagnostics...\n');
   
   try {
-    const { getRoundQuestions } = await import('./services/supabaseQuestions');
+    const { getRoundQuestions } = await import('../services/supabaseQuestions');
     const questions = await getRoundQuestions('APTITUDE');
     
     console.log('✅ Database connection: OK');
@@ -159,7 +159,7 @@ export const diagnoseDatabase = async () => {
  * Show detailed question information
  */
 export const showQuestionDetails = async (questionIndex: number = 0) => {
-  const { getRoundQuestions } = await import('./services/supabaseQuestions');
+  const { getRoundQuestions } = await import('../services/supabaseQuestions');
   const questions = await getRoundQuestions('APTITUDE');
   
   if (questionIndex >= questions.length) {

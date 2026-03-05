@@ -3,7 +3,6 @@ import { LoginPage } from './components/LoginPage';
 import { WaitingLobby } from './components/WaitingLobby';
 import AdminDashboard from './pages/AdminDashboard';
 import DragReorder from './components/DragReorder';
-import Leaderboard from './components/Leaderboard';
 import { AptitudeRound } from './components/AptitudeRound';
 import { RealTimeLeaderboard } from './components/RealTimeLeaderboard';
 import { TabDetector } from './modules/TabDetector';
@@ -81,15 +80,19 @@ function App() {
             setActiveTab('ROUND');
         };
 
-        socket.on('round_started', onRoundStarted);
-        socket.on('round_stopped', () => {
-            setSubmittedMessage('Round ended. Wait for admin instructions.');
-            setCurrentRound('LOBBY');
-        });
+        if (socket) {
+            socket.on('round_started', onRoundStarted);
+            socket.on('round_stopped', () => {
+                setSubmittedMessage('Round ended. Wait for admin instructions.');
+                setCurrentRound('LOBBY');
+            });
+        }
 
         return () => {
-            socket.off('round_started', onRoundStarted);
-            socket.off('round_stopped');
+            if (socket) {
+                socket.off('round_started', onRoundStarted);
+                socket.off('round_stopped');
+            }
         };
     }, [isAuthenticated, student]);
 
@@ -104,11 +107,13 @@ function App() {
             setDragLines(shuffleLines(lines));
         }
 
-        socket.emit('student_activity', {
-            studentId: student?.id,
-            questionId: currentQuestion.id,
-            action: 'VIEW_QUESTION'
-        });
+        if (socket) {
+            socket.emit('student_activity', {
+                studentId: student?.id,
+                questionId: currentQuestion.id,
+                action: 'VIEW_QUESTION'
+            });
+        }
     }, [currentQuestionIndex, currentRound, currentQuestion, student?.id]);
 
     useEffect(() => {
@@ -140,7 +145,7 @@ function App() {
         }
     };
 
-    const handleLoginSuccess = (studentData: any, token: string, adminStatus: boolean = false) => {
+    const handleLoginSuccess = (studentData: any, _token: string, adminStatus: boolean = false) => {
         setStudent(studentData);
         setIsAuthenticated(true);
         setIsAdmin(adminStatus);
@@ -231,30 +236,6 @@ function App() {
                 
                 <AptitudeRound
                     student={student}
-                    questions={questions}
-                    currentQuestionIndex={currentQuestionIndex}
-                    onQuestionSubmit={async (answer, timeTaken) => {
-                        if (!student || !currentQuestion || isSubmitting) return;
-                        
-                        setIsSubmitting(true);
-                        try {
-                            const response = await submissionsAPI.submit(
-                                student.id,
-                                currentQuestion.id,
-                                answer,
-                                timeTaken
-                            );
-                            
-                            // Move to next question after submission
-                            setTimeout(() => {
-                                goToNextQuestion();
-                            }, 2000);
-                        } catch (error) {
-                            console.error('Submission failed:', error);
-                        } finally {
-                            setIsSubmitting(false);
-                        }
-                    }}
                 />
             </div>
         );
@@ -295,8 +276,8 @@ function App() {
             <main className="max-w-7xl mx-auto py-10 px-4 md:px-6">
                 {activeTab === 'LEADERBOARD' ? (
                     <RealTimeLeaderboard
-                        showAptitude={currentRound === 'APTITUDE' || true}
-                        showTechnical={currentRound === 'TECHNICAL' || true}
+                        showAptitude={currentRound === 'APTITUDE' as any}
+                        showTechnical={currentRound === 'TECHNICAL' as any}
                     />
                 ) : (
                     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-8">
