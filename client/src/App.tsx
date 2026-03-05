@@ -258,7 +258,7 @@ function App() {
                 </div>
                 <button className="text-sm bg-gray-800 px-4 py-1.5 rounded border border-gray-700 font-bold flex items-center gap-2">
                     <User className="w-4 h-4" />
-                    {student.regNo}
+                    {student.reg_no || student.regNo}
                 </button>
             </header>
 

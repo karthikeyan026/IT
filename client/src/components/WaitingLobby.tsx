@@ -71,7 +71,7 @@ export const WaitingLobby: React.FC<WaitingLobbyProps> = ({ student, onRoundStar
                         </div>
                         <div className="text-right">
                             <p className="text-sm text-gray-400">Register Number</p>
-                            <p className="text-lg font-mono font-bold text-cyan-400">{student.regNo}</p>
+                            <p className="text-lg font-mono font-bold text-cyan-400">{student.reg_no || student.regNo}</p>
                         </div>
                     </div>
 

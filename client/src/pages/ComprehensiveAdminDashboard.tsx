@@ -52,7 +52,14 @@ const ComprehensiveAdminDashboard: React.FC = () => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        console.log('ComprehensiveAdminDashboard mounted');
         fetchAllData();
+        
+        // Safety timeout: ensure loading is set to false after 5 seconds max
+        const safetyTimeout = setTimeout(() => {
+            console.log('Safety timeout: forcing loading to false');
+            setLoading(false);
+        }, 5000);
         
         // Subscribe to real-time changes
         const studentsSubscription = supabase
@@ -83,6 +90,7 @@ const ComprehensiveAdminDashboard: React.FC = () => {
         const interval = setInterval(fetchEventStatus, 3000);
 
         return () => {
+            clearTimeout(safetyTimeout);
             studentsSubscription.unsubscribe();
             violationsSubscription.unsubscribe();
             plagiarismSubscription.unsubscribe();
@@ -91,13 +99,20 @@ const ComprehensiveAdminDashboard: React.FC = () => {
     }, []);
 
     const fetchAllData = async () => {
-        await Promise.all([
-            fetchStudents(),
-            fetchViolations(),
-            fetchPlagiarism(),
-            fetchEventStatus()
-        ]);
-        setLoading(false);
+        console.log('fetchAllData called');
+        try {
+            // Fetch data independently so one failure doesn't break everything
+            await fetchStudents().catch(err => console.error('Students fetch failed:', err));
+            await fetchViolations().catch(err => console.error('Violations fetch failed:', err));
+            await fetchPlagiarism().catch(err => console.error('Plagiarism fetch failed:', err));
+            await fetchEventStatus().catch(err => console.error('Event status fetch failed:', err));
+            console.log('All data fetched successfully');
+        } catch (error) {
+            console.error('Error fetching data:', error);
+        } finally {
+            console.log('Setting loading to false');
+            setLoading(false);
+        }
     };
 
     const fetchEventStatus = async () => {
@@ -117,13 +132,17 @@ const ComprehensiveAdminDashboard: React.FC = () => {
     };
 
     const fetchStudents = async () => {
+        console.log('fetchStudents called');
         try {
             const { data, error } = await supabase
                 .from('students')
                 .select('*')
                 .order('overall_score', { ascending: false });
 
-            if (error) throw error;
+            if (error) {
+                console.error('Error in fetchStudents:', error);
+                throw error;
+            }
 
             if (data) {
                 setStudents(data);
